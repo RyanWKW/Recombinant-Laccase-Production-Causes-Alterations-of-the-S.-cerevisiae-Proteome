@@ -1,0 +1,97 @@
+---
+title: "CV Density Plot"
+author: "Ryan Wong"
+date: "2025-05-06"
+output: html_document
+---
+
+## Load Packages
+
+```{r}
+
+library(ggplot2)
+library(dplyr)
+library(readxl)
+
+```
+
+## Load Data
+
+```{r}
+
+#Select condition and day to plot by changing value of s: EV_D1 = 3, EV_D2 = 4, EV_D3 = 5, EV_D4 = 6, TtL_D1 = 7, TtL_D2 = 8, TtL_D3 = 9, TtL_D4 = 10
+
+s <- 10 #Change this value for the correct dataset to plot
+
+CVS <- read_xlsx("D:/+_-_Laccase/BY4741 TtL/Supplemental File 2 - Proteins Quantified.xlsx", sheet = 2)
+CVS <- CVS[,s]
+CVS <- t(CVS)
+CVS <- as.data.frame(CVS)
+numiCVS <-as.numeric(CVS)
+CVS <- as.data.frame(numiCVS)
+
+```
+
+## Determine Median
+
+```{r}
+
+medi <- median(numiCVS, na.rm = TRUE)
+
+```
+
+## Plot Density
+
+```{r}
+
+CVS %>%
+  ggplot(aes(x=numiCVS)) +
+    geom_density(color = "grey", fill = "grey", alpha = 0.75)+
+    theme_bw()+
+  geom_vline(aes(xintercept = medi), color = "green3", linetype = "dashed", linewidth = 1) +
+  annotate(x = medi, y = +Inf, label = as.character(medi), vjust = 2, geom = "label")+
+  xlab("CV (%)") + ylab("Density")
+
+```
+
+## Save Plots
+
+```{r}
+
+if (s == 3) {
+  name <- "EV_D1_CV_Density_Plot"
+}
+
+if (s == 4) {
+  name <- "EV_D2_CV_Density_Plot"
+}
+
+if (s == 5){
+  name <- "EV_D3_CV_Density_Plot"
+}
+
+if (s == 6){
+  name <- "EV_D4_CV_Density_Plot"
+}
+
+if (s == 7){
+  name <- "TtL_D1_CV_Density_Plot"
+}
+
+if (s == 8){
+  name <- "TtL_D2_CV_Density_Plot"
+}
+
+if (s == 9){
+  name <- "TtL_D3_CV_Density_Plot"
+}
+
+if (s == 10){
+  name <- "TtL_D4_CV_Density_Plot"
+}
+
+ggsave(paste(name, ".jpg", sep = ""), device = "jpg", path = "D:/+_-_Laccase/BY4741 TtL", units = "cm", width = 20, height = 10, dpi = 600)
+
+ggsave(paste(name, ".svg", sep = ""), device = "svg", path = "D:/+_-_Laccase/BY4741 TtL", units = "cm", width = 20, height = 10, dpi = 600)
+
+```
