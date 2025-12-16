@@ -1,0 +1,104 @@
+---
+title: "BY4741 +/- Laccase PCA"
+author: "Ryan Wong"
+date: "2024-09-26"
+output: html_document
+---
+
+## Packages
+
+```{r}
+
+library(FactoMineR)
+library(factoextra)
+library(readxl)
+library(writexl)
+library(RColorBrewer)
+library(paletteer)
+library(ggthemes)
+library(dplyr)
+library(tibble)
+library(imputeLCMD)
+
+```
+
+## Data
+
+```{r}
+
+setwd("D:/+_-_Laccase/BY4741 TtL")
+
+df <- read.delim("BY4741 Time-course.txt", header = TRUE, sep = "\t") #Sheet 1 of Supplemental File 2
+
+df.t <- t(df[,3:ncol(df)])
+
+df.t <- as.data.frame(df.t)
+
+colnames(df.t)[4283] <- "group"
+
+colnames(df.t)[1:(ncol(df.t)-1)] <- df[1:4282,1]
+
+```
+
+## Data Manipulation
+
+```{r}
+
+writedata <- TRUE
+Do_MM <- FALSE
+
+if(Do_MM == TRUE){
+  tmp <- c()
+  out <- c()
+for (i in unique(rownames(df.t))) {
+  norm.df <- df.t %>% filter(rownames(df.t) == i)
+  mx <- max(norm.df[,1:(ncol(norm.df)-1)], na.rm = TRUE)
+  mn <- min(norm.df[,1:(ncol(norm.df)-1)], na.rm = TRUE)
+  nrm <- (norm.df[,1:(ncol(norm.df)-1)]-mn)/(mx-mn)
+  
+  tmp <- cbind(i, nrm)
+  out <- rbind(out, tmp)
+  
+}} else {
+  
+  print("Data is already Min/Maxed or is not required")
+  
+  out <- df.t
+  out <- add_column(out, i = rownames(df.t), .before = 1)
+  
+}
+
+tout <- as.data.frame(t(out[,2:ncol(out)]))
+timp <- impute.MinProb(tout, q = 0.05, tune.sigma = 0.1)
+imp <- as.data.frame(t(timp))
+imp$group <- df.t$group
+imp <- cbind(rownames(imp),imp)
+
+if (writedata == TRUE){
+  
+  write_xlsx(imp, "D:/+_-_Laccase/BY4741 TtL/BY4741_Time-course_PCA_Imputed.xlsx")
+
+}
+```
+
+## Plot
+
+```{r}
+
+saveimage <- TRUE
+
+my.pca <- PCA(imp[,2:(ncol(imp)-1)], graph = F)
+my.var <- get_pca_var(my.pca)
+
+p <- fviz_pca_ind(my.pca, geom = c("point", "text"), col.ind = imp$group, gradient.cols = paletteer_c("grDevices::rainbow", 22), repel = T)
+p
+
+if (saveimage == TRUE){
+  
+  ggsave("BY4741_Time-course_PCA_Normalized.svg", device = "svg", path = "D:/+_-_Laccase/BY4741 TtL", units = "cm", width = 20, height = 15, dpi = 300)
+  
+  ggsave("BY4741_Time-course_PCA_Normalized.jpg", device = "jpg", path = "D:/+_-_Laccase/BY4741 TtL", units = "cm", width = 20, height = 15, dpi = 300)
+  
+}
+
+```
