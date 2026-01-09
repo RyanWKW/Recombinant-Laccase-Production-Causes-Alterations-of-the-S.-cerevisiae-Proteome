@@ -1,0 +1,339 @@
+---
+title: "BY4741_Time-course_PCA_and_LIMMA"
+author: "Yuming Shi + Ryan Wong"
+date: "2025-02-10"
+output: html_document
+---
+
+#Load Packages
+```{r}
+
+library(readxl)
+library(writexl)
+library(limma)
+library(factoextra)
+library(tidyverse)
+
+```
+
+#import data
+
+```{r}
+
+prot_data <- read_excel("Supplemental File 2 - Proteins Quantified.xlsx", sheet = "BY4741 Time-course") #Sheet 1 of Supplemental File 2
+data <- prot_data[1:4282,]
+sample <- c("D1_EV_1", "D2_EV_1",	"D3_EV_1",	"D4_EV_1",	"D1_EV_2",	"D2_EV_2",	"D3_EV_2",	"D4_EV_2",	"D1_EV_3",	"D2_EV_3",	"D3_EV_3",	"D4_EV_3",	"D1_EV_4",	"D2_EV_4",	"D3_EV_4",	"D4_EV_4",	"D1_TtL_1",	"D2_TtL_1",	"D3_TtL_1",	"D4_TtL_1",	"D1_TtL_2",	"D2_TtL_2",	"D3_TtL_2",	"D4_TtL_2",	"D1_TtL_3",	"D2_TtL_3",	"D3_TtL_3",	"D4_TtL_3",	"D1_TtL_4",	"D2_TtL_4",	"D3_TtL_4",	"D4_TtL_4")
+
+#set colname names
+colnames(data)[3:34] <- sample
+
+#extract gene and protein
+gene <- data[,1]
+protein <- data[,2]
+
+#convert character columns to numeric
+data <- as.data.frame(data[,3:34])
+data <- as.data.frame(apply(data, 2, as.numeric))
+rownames(data) <- prot_data$PG.Genes[1:4282]
+
+#log2 transform data
+data <- log2(data)
+
+#extract meta data
+metadata <- data.frame(sample = as.character(sample),
+                       expression = NA,
+                       day = NA,
+                       replicate = NA)
+metadata$expression <- str_split_i(metadata$sample, "_", 2)
+metadata$day <- str_split_i(metadata$sample, "_", 1)
+metadata$replicate <- str_split_i(metadata$sample, "_", 3)
+metadata$xd <- substr(metadata$sample, start = 1, stop = 5)
+
+```
+
+#PCA
+
+```{r}
+
+pca_data <- prcomp(t(data[rowSums(is.na(data)) == 0,]))
+
+fviz_pca_ind(pca_data,
+             geom = "point", #"point" or "text"
+             habillage = metadata$xd,
+             repel = TRUE,
+             addEllipses = FALSE,
+             ellipse.level = 0.95)
+ggsave("PCA_BY4741.svg", device = "svg", path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/", units = "cm", width = 20, height = 15, dpi = 300)
+ggsave("PCA_BY4741.jpg", device = "jpg", path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/", units = "cm", width = 20, height = 15, dpi = 300)
+
+fviz_pca_var(pca_data, col.var = "cos2", gradient.cols = c("gray100", "forestgreen"))
+ggsave("PCA_Var_BY4741_cos2.svg", device = "svg", path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/", units = "cm", width = 20, height = 15, dpi = 300)
+ggsave("PCA_Var_BY4741_cos2.jpg", device = "jpg", path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/", units = "cm", width = 20, height = 15, dpi = 300)
+
+```
+
+#limma
+
+```{r}
+
+#design matrix
+design <- model.matrix(~ 0 + xd, data = metadata)
+
+#fit data to the design matrix
+fit <- lmFit(data, design)
+
+#make contrast between expression types
+con <- makeContrasts(xdD1_Tt - xdD1_EV,
+                     xdD2_Tt - xdD2_EV,
+                     xdD3_Tt - xdD3_EV,
+                     xdD4_Tt - xdD4_EV,
+                     xdD2_EV - xdD1_EV,
+                     xdD3_EV - xdD1_EV,
+                     xdD4_EV - xdD1_EV,
+                     xdD3_EV - xdD2_EV,
+                     xdD4_EV - xdD2_EV,
+                     xdD4_EV - xdD3_EV,
+                     xdD2_Tt - xdD1_Tt,
+                     xdD3_Tt - xdD1_Tt,
+                     xdD4_Tt - xdD1_Tt,
+                     xdD3_Tt - xdD2_Tt,
+                     xdD4_Tt - xdD2_Tt,
+                     xdD4_Tt - xdD3_Tt,
+                     levels = design)
+
+#fit the contrast to limma regression
+
+fit.con <- contrasts.fit(fit, con)
+
+#bayes moderation
+
+bayes <- eBayes(fit.con)
+
+#get the result, correct p-value by Benjamini-Hochberg correction
+
+resultTE1 <- topTable(bayes,coef=1, sort.by="none", n=Inf, adjust.method = "BH")
+resultTE1 <- cbind("proteins" = rownames(resultTE1),resultTE1)
+resultTE1$Level <- "No"
+i <- 1
+while (i <= nrow(resultTE1)) {
+  if (resultTE1$logFC[i] > 1 & !is.na(resultTE1$logFC[i]) & resultTE1$adj.P.Val[i] < 0.05) {resultTE1$Level[i] <- "Up"}
+  else  if(resultTE1$logFC[i] < -1 & !is.na(resultTE1$logFC[i]) & resultTE1$adj.P.Val[i] < 0.05) {resultTE1$Level[i] <- "Down"}
+  i <- i + 1}
+write_xlsx(resultTE1, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_TtLD1_vs_EVD1.xlsx")
+
+resultTE2 <- topTable(bayes,coef=2, sort.by="none", n=Inf, adjust.method = "BH")
+resultTE2 <- cbind("proteins" = rownames(resultTE2),resultTE2)
+resultTE2$Level <- "No"
+i <- 1
+while (i <= nrow(resultTE2)) {
+  if (resultTE2$logFC[i] > 1 & !is.na(resultTE2$logFC[i]) & resultTE2$adj.P.Val[i] < 0.05) {resultTE2$Level[i] <- "Up"}
+  else  if(resultTE2$logFC[i] < -1 & !is.na(resultTE2$logFC[i]) & resultTE2$adj.P.Val[i] < 0.05) {resultTE2$Level[i] <- "Down"}
+  i <- i + 1}
+write_xlsx(resultTE2, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_TtLD2_vs_EVD2.xlsx")
+
+resultTE3 <- topTable(bayes,coef=3, sort.by="none", n=Inf, adjust.method = "BH")
+resultTE3 <- cbind("proteins" = rownames(resultTE3),resultTE3)
+resultTE3$Level <- "No"
+i <- 1
+while (i <= nrow(resultTE3)) {
+  if (resultTE3$logFC[i] > 1 & !is.na(resultTE3$logFC[i]) & resultTE3$adj.P.Val[i] < 0.05) {resultTE3$Level[i] <- "Up"}
+  else  if(resultTE3$logFC[i] < -1 & !is.na(resultTE3$logFC[i]) & resultTE3$adj.P.Val[i] < 0.05) {resultTE3$Level[i] <- "Down"}
+  i <- i + 1}
+write_xlsx(resultTE3, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_TtLD3_vs_EVD3.xlsx")
+
+resultTE4 <- topTable(bayes,coef=4, sort.by="none", n=Inf, adjust.method = "BH")
+resultTE4 <- cbind("proteins" = rownames(resultTE4),resultTE4)
+resultTE4$Level <- "No"
+i <- 1
+while (i <= nrow(resultTE4)) {
+  if (resultTE4$logFC[i] > 1 & !is.na(resultTE4$logFC[i]) & resultTE4$adj.P.Val[i] < 0.05) {resultTE4$Level[i] <- "Up"}
+  else  if(resultTE4$logFC[i] < -1 & !is.na(resultTE4$logFC[i]) & resultTE4$adj.P.Val[i] < 0.05) {resultTE4$Level[i] <- "Down"}
+  i <- i + 1}
+write_xlsx(resultTE4, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_TtLD4_vs_EVD4.xlsx")
+
+resultEE21 <- topTable(bayes,coef=5, sort.by="none", n=Inf, adjust.method = "BH")
+resultEE21 <- cbind("proteins" = rownames(resultEE21),resultEE21)
+resultEE21$Level <- "No"
+i <- 1
+while (i <= nrow(resultEE21)) {
+  if (resultEE21$logFC[i] > 1 & !is.na(resultEE21$logFC[i]) & resultEE21$adj.P.Val[i] < 0.05) {resultEE21$Level[i] <- "Up"}
+  else  if(resultEE21$logFC[i] < -1 & !is.na(resultEE21$logFC[i]) & resultEE21$adj.P.Val[i] < 0.05) {resultEE21$Level[i] <- "Down"}
+  i <- i + 1}
+write_xlsx(resultEE21, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_EVD2_vs_EVD1.xlsx")
+
+resultEE31 <- topTable(bayes,coef=6, sort.by="none", n=Inf, adjust.method = "BH")
+resultEE31 <- cbind("proteins" = rownames(resultEE31),resultEE31)
+resultEE31$Level <- "No"
+i <- 1
+while (i <= nrow(resultEE31)) {
+  if (resultEE31$logFC[i] > 1 & !is.na(resultEE31$logFC[i]) & resultEE31$adj.P.Val[i] < 0.05) {resultEE31$Level[i] <- "Up"}
+  else  if(resultEE31$logFC[i] < -1 & !is.na(resultEE31$logFC[i]) & resultEE31$adj.P.Val[i] < 0.05) {resultEE31$Level[i] <- "Down"}
+  i <- i + 1}
+write_xlsx(resultEE31, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_EVD3_vs_EVD1.xlsx")
+
+resultEE41 <- topTable(bayes,coef=7, sort.by="none", n=Inf, adjust.method = "BH")
+resultEE41 <- cbind("proteins" = rownames(resultEE41),resultEE41)
+resultEE41$Level <- "No"
+i <- 1
+while (i <= nrow(resultEE41)) {
+  if (resultEE41$logFC[i] > 1 & !is.na(resultEE41$logFC[i]) & resultEE41$adj.P.Val[i] < 0.05) {resultEE41$Level[i] <- "Up"}
+  else  if(resultEE41$logFC[i] < -1 & !is.na(resultEE41$logFC[i]) & resultEE41$adj.P.Val[i] < 0.05) {resultEE41$Level[i] <- "Down"}
+  i <- i + 1}
+write_xlsx(resultEE41, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_EVD4_vs_EVD1.xlsx")
+
+resultEE32 <- topTable(bayes,coef=8, sort.by="none", n=Inf, adjust.method = "BH")
+resultEE32 <- cbind("proteins" = rownames(resultEE32),resultEE32)
+resultEE32$Level <- "No"
+i <- 1
+while (i <= nrow(resultEE32)) {
+  if (resultEE32$logFC[i] > 1 & !is.na(resultEE32$logFC[i]) & resultEE32$adj.P.Val[i] < 0.05) {resultEE32$Level[i] <- "Up"}
+  else  if(resultEE32$logFC[i] < -1 & !is.na(resultEE32$logFC[i]) & resultEE32$adj.P.Val[i] < 0.05) {resultEE32$Level[i] <- "Down"}
+  i <- i + 1}
+write_xlsx(resultEE32, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_EVD3_vs_EVD2.xlsx")
+
+resultEE42 <- topTable(bayes,coef=9, sort.by="none", n=Inf, adjust.method = "BH")
+resultEE42 <- cbind("proteins" = rownames(resultEE42),resultEE42)
+resultEE42$Level <- "No"
+i <- 1
+while (i <= nrow(resultEE42)) {
+  if (resultEE42$logFC[i] > 1 & !is.na(resultEE42$logFC[i]) & resultEE42$adj.P.Val[i] < 0.05) {resultEE42$Level[i] <- "Up"}
+  else  if(resultEE42$logFC[i] < -1 & !is.na(resultEE42$logFC[i]) & resultEE42$adj.P.Val[i] < 0.05) {resultEE42$Level[i] <- "Down"}
+  i <- i + 1}
+write_xlsx(resultEE42, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_EVD4_vs_EVD2.xlsx")
+
+resultEE43 <- topTable(bayes,coef=10, sort.by="none", n=Inf, adjust.method = "BH")
+resultEE43 <- cbind("proteins" = rownames(resultEE43),resultEE43)
+resultEE43$Level <- "No"
+i <- 1
+while (i <= nrow(resultEE43)) {
+  if (resultEE43$logFC[i] > 1 & !is.na(resultEE43$logFC[i]) & resultEE43$adj.P.Val[i] < 0.05) {resultEE43$Level[i] <- "Up"}
+  else  if(resultEE43$logFC[i] < -1 & !is.na(resultEE43$logFC[i]) & resultEE43$adj.P.Val[i] < 0.05) {resultEE43$Level[i] <- "Down"}
+  i <- i + 1}
+write_xlsx(resultEE43, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_EVD4_vs_EVD3.xlsx")
+
+resultTT21 <- topTable(bayes,coef=11, sort.by="none", n=Inf, adjust.method = "BH")
+resultTT21 <- cbind("proteins" = rownames(resultTT21),resultTT21)
+resultTT21$Level <- "No"
+i <- 1
+while (i <= nrow(resultTT21)) {
+  if (resultTT21$logFC[i] > 1 & !is.na(resultTT21$logFC[i]) & resultTT21$adj.P.Val[i] < 0.05) {resultTT21$Level[i] <- "Up"}
+  else  if(resultTT21$logFC[i] < -1 & !is.na(resultTT21$logFC[i]) & resultTT21$adj.P.Val[i] < 0.05) {resultTT21$Level[i] <- "Down"}
+  i <- i + 1}
+write_xlsx(resultTT21, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_TtLD2_vs_TtLD1.xlsx")
+
+resultTT31 <- topTable(bayes,coef=12, sort.by="none", n=Inf, adjust.method = "BH")
+resultTT31 <- cbind("proteins" = rownames(resultTT31),resultTT31)
+resultTT31$Level <- "No"
+i <- 1
+while (i <= nrow(resultTT31)) {
+  if (resultTT31$logFC[i] > 1 & !is.na(resultTT31$logFC[i]) & resultTT31$adj.P.Val[i] < 0.05) {resultTT31$Level[i] <- "Up"}
+  else  if(resultTT31$logFC[i] < -1 & !is.na(resultTT31$logFC[i]) & resultTT31$adj.P.Val[i] < 0.05) {resultTT31$Level[i] <- "Down"}
+  i <- i + 1}
+write_xlsx(resultTT31, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_TtLD3_vs_TtLD1.xlsx")
+
+resultTT41 <- topTable(bayes,coef=13, sort.by="none", n=Inf, adjust.method = "BH")
+resultTT41 <- cbind("proteins" = rownames(resultTT41),resultTT41)
+resultTT41$Level <- "No"
+i <- 1
+while (i <= nrow(resultTT41)) {
+  if (resultTT41$logFC[i] > 1 & !is.na(resultTT41$logFC[i]) & resultTT41$adj.P.Val[i] < 0.05) {resultTT41$Level[i] <- "Up"}
+  else  if(resultTT41$logFC[i] < -1 & !is.na(resultTT41$logFC[i]) & resultTT41$adj.P.Val[i] < 0.05) {resultTT41$Level[i] <- "Down"}
+  i <- i + 1}
+write_xlsx(resultTT41, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_TtLD4_vs_TtLD1.xlsx")
+
+resultTT32 <- topTable(bayes,coef=14, sort.by="none", n=Inf, adjust.method = "BH")
+resultTT32 <- cbind("proteins" = rownames(resultTT32),resultTT32)
+resultTT32$Level <- "No"
+i <- 1
+while (i <= nrow(resultTT32)) {
+  if (resultTT32$logFC[i] > 1 & !is.na(resultTT32$logFC[i]) & resultTT32$adj.P.Val[i] < 0.05) {resultTT32$Level[i] <- "Up"}
+  else  if(resultTT32$logFC[i] < -1 & !is.na(resultTT32$logFC[i]) & resultTT32$adj.P.Val[i] < 0.05) {resultTT32$Level[i] <- "Down"}
+  i <- i + 1}
+write_xlsx(resultTT32, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_TtLD3_vs_TtLD2.xlsx")
+
+resultTT42 <- topTable(bayes,coef=15, sort.by="none", n=Inf, adjust.method = "BH")
+resultTT42 <- cbind("proteins" = rownames(resultTT42),resultTT42)
+resultTT42$Level <- "No"
+i <- 1
+while (i <= nrow(resultTT42)) {
+  if (resultTT42$logFC[i] > 1 & !is.na(resultTT42$logFC[i]) & resultTT42$adj.P.Val[i] < 0.05) {resultTT42$Level[i] <- "Up"}
+  else  if(resultTT42$logFC[i] < -1 & !is.na(resultTT42$logFC[i]) & resultTT42$adj.P.Val[i] < 0.05) {resultTT42$Level[i] <- "Down"}
+  i <- i + 1}
+write_xlsx(resultTT42, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_TtLD4_vs_TtLD2.xlsx")
+
+resultTT43 <- topTable(bayes,coef=16, sort.by="none", n=Inf, adjust.method = "BH")
+resultTT43 <- cbind("proteins" = rownames(resultTT43),resultTT43)
+resultTT43$Level <- "No"
+i <- 1
+while (i <= nrow(resultTT43)) {
+  if (resultTT43$logFC[i] > 1 & !is.na(resultTT43$logFC[i]) & resultTT43$adj.P.Val[i] < 0.05) {resultTT43$Level[i] <- "Up"}
+  else  if(resultTT43$logFC[i] < -1 & !is.na(resultTT43$logFC[i]) & resultTT43$adj.P.Val[i] < 0.05) {resultTT43$Level[i] <- "Down"}
+  i <- i + 1}
+write_xlsx(resultTT43, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_TtLD4_vs_TtLD3.xlsx")
+
+#extract significant result (adjusted p-value < 0.05, |log2FC| > 1)
+sigTE1 <- resultTE1[resultTE1$adj.P.Val < 0.05 & abs(resultTE1$logFC) > 1,]
+sigTE1 <- sigTE1[!is.na(sigTE1$logFC),]
+write_xlsx(sigTE1, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_Hits_TtLD1_vs_EVD1.xlsx")
+
+sigTE2 <- resultTE2[resultTE2$adj.P.Val < 0.05 & abs(resultTE2$logFC) > 1,]
+sigTE2 <- sigTE2[!is.na(sigTE2$logFC),]
+write_xlsx(sigTE2, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_Hits_TtLD2_vs_EVD2.xlsx")
+
+sigTE3 <- resultTE3[resultTE3$adj.P.Val < 0.05 & abs(resultTE3$logFC) > 1,]
+sigTE3 <- sigTE3[!is.na(sigTE3$logFC),]
+write_xlsx(sigTE3, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_Hits_TtLD3_vs_EVD3.xlsx")
+
+sigTE4 <- resultTE4[resultTE4$adj.P.Val < 0.05 & abs(resultTE4$logFC) > 1,]
+sigTE4 <- sigTE4[!is.na(sigTE4$logFC),]
+write_xlsx(sigTE4, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_Hits_TtLD4_vs_EVD4.xlsx")
+
+sigEE21 <- resultEE21[resultEE21$adj.P.Val < 0.05 & abs(resultEE21$logFC) > 1,]
+sigEE21 <- sigEE21[!is.na(sigEE21$logFC),]
+write_xlsx(sigEE21, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_Hits_EVD2_vs_EVD1.xlsx")
+
+sigEE31 <- resultEE31[resultEE31$adj.P.Val < 0.05 & abs(resultEE31$logFC) > 1,]
+sigEE31 <- sigEE31[!is.na(sigEE31$logFC),]
+write_xlsx(sigEE31, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_Hits_EVD3_vs_EVD1.xlsx")
+
+sigEE41 <- resultEE41[resultEE41$adj.P.Val < 0.05 & abs(resultEE41$logFC) > 1,]
+sigEE41 <- sigEE41[!is.na(sigEE41$logFC),]
+write_xlsx(sigEE41, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_Hits_EVD4_vs_EVD1.xlsx")
+
+sigEE32 <- resultEE32[resultEE32$adj.P.Val < 0.05 & abs(resultEE32$logFC) > 1,]
+sigEE32 <- sigEE32[!is.na(sigEE32$logFC),]
+write_xlsx(sigEE32, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_Hits_EVD3_vs_EVD2.xlsx")
+
+sigEE42 <- resultEE42[resultEE42$adj.P.Val < 0.05 & abs(resultEE42$logFC) > 1,]
+sigEE42 <- sigEE42[!is.na(sigEE42$logFC),]
+write_xlsx(sigEE42, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_Hits_EVD4_vs_EVD2.xlsx")
+
+sigEE43 <- resultEE43[resultEE43$adj.P.Val < 0.05 & abs(resultEE43$logFC) > 1,]
+sigEE43 <- sigEE43[!is.na(sigEE43$logFC),]
+write_xlsx(sigEE43, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_Hits_EVD4_vs_EVD3.xlsx")
+
+sigTT21 <- resultTT21[resultTT21$adj.P.Val < 0.05 & abs(resultTT21$logFC) > 1,]
+sigTT21 <- sigTT21[!is.na(sigTT21$logFC),]
+write_xlsx(sigTT21, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_Hits_TtLD2_vs_TtLD1.xlsx")
+
+sigTT31 <- resultTT31[resultTT31$adj.P.Val < 0.05 & abs(resultTT31$logFC) > 1,]
+sigTT31 <- sigTT31[!is.na(sigTT31$logFC),]
+write_xlsx(sigTT31, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_Hits_TtLD3_vs_TtLD1.xlsx")
+
+sigTT41 <- resultTT41[resultTT41$adj.P.Val < 0.05 & abs(resultTT41$logFC) > 1,]
+sigTT41 <- sigTT41[!is.na(sigTT41$logFC),]
+write_xlsx(sigTT41, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_Hits_TtLD4_vs_TtLD1.xlsx")
+
+sigTT32 <- resultTT32[resultTT32$adj.P.Val < 0.05 & abs(resultTT32$logFC) > 1,]
+sigTT32 <- sigTT32[!is.na(sigTT32$logFC),]
+write_xlsx(sigTT32, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_Hits_TtLD3_vs_TtLD2.xlsx")
+
+sigTT42 <- resultTT42[resultTT42$adj.P.Val < 0.05 & abs(resultTT42$logFC) > 1,]
+sigTT42 <- sigTT42[!is.na(sigTT42$logFC),]
+write_xlsx(sigTT42, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_Hits_TtLD4_vs_TtLD2.xlsx")
+
+sigTT43 <- resultTT43[resultTT43$adj.P.Val < 0.05 & abs(resultTT43$logFC) > 1,]
+sigTT43 <- sigTT43[!is.na(sigTT43$logFC),]
+write_xlsx(sigTT43, path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/LIMMA_Hits_TtLD4_vs_TtLD3.xlsx")
+
+```
