@@ -1,0 +1,46 @@
+---
+title: "KEGG GO Sankey"
+author: "Ryan Wong"
+date: "2025-07-15"
+output: html_document
+---
+
+# Load Packages
+
+```{r}
+
+library(networkD3)
+library(dplyr)
+library(readxl)
+library(htmlwidgets)
+library(webshot)
+
+```
+
+# Load Data and Plot
+
+```{r}
+
+links = read_excel("Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/Heatmaps_Sahil/KEGG GO Sankey Data.xlsx") #Data file combining all the BY Cluster KEGG terms in Supplemental file 2. The first column is the "Cluster" which the terms orginate from, the second column is "Term" and the third column is "nGenes" the number of genes/proteins covered by each term.
+
+nodes = data.frame(name=c(as.character(links$Cluster), as.character(links$Term)) %>% unique())
+
+links$IDcluster = match(links$Cluster, nodes$name)-1
+
+links$IDterm = match(links$Term, nodes$name)-1
+
+p = sankeyNetwork(Links = links, Nodes = nodes, Source = "IDcluster", Target = "IDterm", Value = "nGenes", NodeID = "name", sinksRight=FALSE, nodeWidth = 30)
+
+javascript_string = 
+  'function(el) {
+     d3.select(el).selectAll(".link")
+       .style("stroke", d => d.source.color);
+  }'
+
+t = htmlwidgets::onRender(x = p, jsCode = javascript_string)
+
+saveWidget(t, file=paste0("Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/sankeyKEGG.html"))
+
+webshot("file:///Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/sankeyKEGG.html", "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/sankeyKEGG.svg")
+
+```
