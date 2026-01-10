@@ -1,0 +1,96 @@
+---
+title: "LIMMA Volcano"
+author: "Ryan Wong"
+date: "2025-02-06"
+output: html_document
+---
+
+## Load Packages
+
+```{r}
+
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(tibble)
+library(ggrepel)
+library(writexl)
+library(readxl)
+
+```
+
+## Volcano Plotting
+
+```{r}
+
+#Set the data set to plot. These were generated in LIMMA script.
+
+dat <- "LIMMA_TtLD4_vs_EVD4"
+
+#Set the p-value cut off
+
+pcut <- 0.05
+
+#Set the naming scheme for filed made using the T test method and p-value
+
+cutval <- "005"
+
+#Automatically sets the save folder name
+
+saveloc <- paste0(dat, "_", cutval)
+
+#Save Images
+
+saveimage <- T
+
+
+## Load Data
+
+prot <- read_xlsx(paste("Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/", dat, "_", cutval, "/", dat, ".xlsx", sep = ""))
+
+prot$prot_name <- ""
+
+i = 1
+
+while (i <= nrow(prot)){
+  
+  if (prot$Level[i] != "No") {
+    prot$prot_name[i] <- prot$proteins[i]
+  }
+  
+  i = i + 1
+  
+}
+
+
+#Volcano Plotting
+
+prot %>%
+  ggplot(aes(x = logFC, y = -log10(adj.P.Val), col = Level, label = prot_name)) +
+  geom_point() +
+  coord_cartesian(xlim = c(-3, 4), ylim = c(0, 15))+
+  scale_color_manual(values = c("red", "grey", "blue")) +
+  geom_text_repel() +
+  geom_hline(yintercept = -log10(pcut), linetype = "dashed", col = "red") + #Change for different p-value
+  geom_vline(xintercept = log2(2), linetype = "dashed", col = "red") + #Change values for different fold change cutoffs
+  geom_vline(xintercept = log2(0.5), linetype = "dashed", col = "red") + #Change values for different fold change cutoffs
+  theme_minimal() +
+  theme(legend.position = "none") +
+  ggtitle(dat) +
+  xlab("log2 Fold-Change") +
+  ylab("-log10 p-value")
+
+#save Plots (set FALSE if you don't want to save the plots)
+
+saveimage <- TRUE
+
+if (saveimage == TRUE){
+
+  #Change text in string if necessary
+  ggsave(paste(dat, "_Vol_", cutval, ".jpg", sep = ""), device = "jpg", path = paste("Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/", saveloc, sep = ""), units = "cm", width = 20, height = 15, dpi = 300)
+  
+  ggsave(paste(dat, "_Vol_", cutval, ".svg", sep = ""), device = "svg", path = paste("Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/LIMMA_TtL_vs_EV/", saveloc, sep = ""), units = "cm", width = 20, height = 15, dpi = 300)
+  
+}
+
+```
