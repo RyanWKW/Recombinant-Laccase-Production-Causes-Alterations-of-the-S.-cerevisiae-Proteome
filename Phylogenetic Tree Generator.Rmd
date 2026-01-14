@@ -1,0 +1,41 @@
+---
+title: "Phylogenetic Tree Generation"
+author: "Ryan Wong"
+date: "2025-05-22"
+output: html_document
+---
+
+# Load the 'ape' library
+```{r}
+
+library(ape)
+
+```
+
+#Read in file as matrix
+```{r}
+
+dist_matrix <- as.matrix(read.table("Z:/mayor_lab/RyanWong/+_-_Laccase/Cladogram/1011DistanceMatrixBasedOnSNPs.tab", header = TRUE, row.names = 1, sep = "\t")) #Dataset from Peter J, et al. 2018 (Nature)
+
+```
+
+# Convert the matrix to a 'dist' object
+```{r}
+
+dist_object <- as.dist(dist_matrix)
+
+```
+
+# Construct a Neighbor Joining tree
+```{r}
+
+tree <- nj(dist_object)
+
+```
+
+# Save the tree in Newick format
+```{r}
+
+write.tree(tree, file = "Z:/mayor_lab/RyanWong/+_-_Laccase/Cladogram/1011_tree_SNPs.nwk")
+
+```
