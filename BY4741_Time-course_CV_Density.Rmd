@@ -23,7 +23,7 @@ library(readxl)
 
 s <- 10 #Change this value for the correct dataset to plot
 
-CVS <- read_xlsx("D:/+_-_Laccase/BY4741 TtL/Supplemental File 2 - Proteins Quantified.xlsx", sheet = 2)
+CVS <- read_xlsx("Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/Supplemental File 2 - Proteins Quantified.xlsx", sheet = 2)
 CVS <- CVS[,s]
 CVS <- t(CVS)
 CVS <- as.data.frame(CVS)
@@ -90,8 +90,9 @@ if (s == 10){
   name <- "TtL_D4_CV_Density_Plot"
 }
 
-ggsave(paste(name, ".jpg", sep = ""), device = "jpg", path = "D:/+_-_Laccase/BY4741 TtL", units = "cm", width = 20, height = 10, dpi = 600)
+ggsave(paste(name, ".jpg", sep = ""), device = "jpg", path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/", units = "cm", width = 20, height = 10, dpi = 600)
 
-ggsave(paste(name, ".svg", sep = ""), device = "svg", path = "D:/+_-_Laccase/BY4741 TtL", units = "cm", width = 20, height = 10, dpi = 600)
+ggsave(paste(name, ".svg", sep = ""), device = "svg", path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/", units = "cm", width = 20, height = 10, dpi = 600)
+
 
 ```
