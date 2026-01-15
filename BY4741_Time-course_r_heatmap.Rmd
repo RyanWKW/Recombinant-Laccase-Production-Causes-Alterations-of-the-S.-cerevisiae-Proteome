@@ -28,7 +28,7 @@ save_svg <- T
 
 ```{r}
 
-setwd("Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/") #Change to the directory which contains the data
+setwd("Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741") #Change to the directory which contains the data
 
 dat <- read.delim("BY4741 Time-course.txt", header = TRUE, sep = "\t") #Sheet 1 of Supplemental File 2
 
@@ -78,7 +78,7 @@ HM
 
 if (save_pdf == T){
 
-  setwd("Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/")
+  setwd("Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741")
   
   ggsave("r_green4_sq_075-1.pdf", plot = HM, device = "pdf", width = 11.8, height = 10, units = "cm", dpi = 1000)
   
@@ -86,7 +86,7 @@ if (save_pdf == T){
 
 if(save_svg == T){
 
-  setwd("Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/")
+  setwd("Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741")
   
   ggsave("r_green4_sq_075-1.svg", plot = HM, device = "svg", width = 11.8, height = 10, units = "cm", dpi = 1000)
   
@@ -94,3 +94,4 @@ if(save_svg == T){
 
 
 ```
+
