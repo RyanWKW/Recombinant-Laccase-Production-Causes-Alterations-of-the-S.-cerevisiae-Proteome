@@ -90,9 +90,10 @@ if (s == 10){
   name <- "TtL_D4_CV_Density_Plot"
 }
 
-ggsave(paste(name, ".jpg", sep = ""), device = "jpg", path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/", units = "cm", width = 20, height = 10, dpi = 600)
+ggsave(paste(name, ".jpg", sep = ""), device = "jpg", path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741", units = "cm", width = 20, height = 10, dpi = 600)
 
-ggsave(paste(name, ".svg", sep = ""), device = "svg", path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741/", units = "cm", width = 20, height = 10, dpi = 600)
+ggsave(paste(name, ".svg", sep = ""), device = "svg", path = "Z:/mayor_lab/RyanWong/+_-_Laccase/BY4741", units = "cm", width = 20, height = 10, dpi = 600)
 
 
 ```
+
