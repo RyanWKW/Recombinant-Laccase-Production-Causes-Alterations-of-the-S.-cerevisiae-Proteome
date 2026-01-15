@@ -1,0 +1,113 @@
+---
+title: "Multistrain +- Laccase CV Density Plots"
+author: "Ryan Wong"
+date: "2025-05-10"
+output: html_document
+---
+
+## Load Packages
+
+```{r}
+
+library(ggplot2)
+library(dplyr)
+library(readxl)
+
+```
+
+## Load Data
+
+```{r}
+
+#Select strain and condition to plot by changing value of s: BY4741_EV = column 3, BY4741_MtL = 4, BY4741_TtL = 5, CLIB549_EV = 6, CLIB549_MtL = 7, CLIB549_TtL = 8, CLIB631_EV = 9, CLIB631_MtL = 10, CLIB631_TtL = 11, CLIB649_EV = 12, CLIB649_MtL = 13, CLIB649_TtL = 14
+
+s <- 5
+
+CVS <- read_xlsx("Z:/mayor_lab/RyanWong/+_-_Laccase/Multistrain/Supplemental File 2 - Proteins Quantified.xlsx", sheet = 4)
+CVS <- CVS[,s]
+CVS <- t(CVS)
+CVS <- as.data.frame(CVS)
+numiCVS <-as.numeric(CVS)
+CVS <- as.data.frame(numiCVS)
+
+```
+
+## Determine Median
+
+```{r}
+
+medi <- median(numiCVS, na.rm = TRUE)
+
+```
+
+## Plot Density
+
+```{r}
+
+CVS %>%
+  ggplot(aes(x=numiCVS)) +
+    geom_density(color = "grey", fill = "grey", alpha = 0.75)+
+    theme_bw()+
+  geom_vline(aes(xintercept = medi), color = "green3", linetype = "dashed", linewidth = 1) +
+  annotate(x = medi, y = +Inf, label = as.character(medi), vjust = 2, geom = "label")+
+  xlab("CV (%)") + ylab("Density")
+
+```
+
+## Save Plot
+
+```{r}
+
+if (s == 3) {
+  name <- "BY4741_EV_CV_Density_Plot"
+}
+
+if (s == 4) {
+  name <- "BY4741_MtL_CV_Density_Plot"
+}
+
+if (s == 5){
+  name <- "BY4741_TtL_CV_Density_Plot"
+}
+
+if (s == 6){
+  name <- "CLIB549_EV_CV_Density_Plot"
+}
+
+if (s == 7){
+  name <- "CLIB549_MtL_CV_Density_Plot"
+}
+
+if (s == 8){
+  name <- "CLIB549_TtL_CV_Density_Plot"
+}
+
+if (s == 9){
+  name <- "CLIB631_EV_CV_Density_Plot"
+}
+
+if (s == 10){
+  name <- "CLIB631_MtL_CV_Density_Plot"
+}
+
+if (s == 11){
+  name <- "CLIB631_TtL_CV_Density_Plot"
+}
+
+if (s == 12){
+  name <- "CLIB649_EV_CV_Density_Plot"
+}
+
+if (s == 13){
+  name <- "CLIB649_MtL_CV_Density_Plot"
+}
+
+if (s == 14){
+  name <- "CLIB649_TtL_CV_Density_Plot"
+}
+
+ggsave(paste(name, ".jpg", sep = ""), device = "jpg", path = "Z:/mayor_lab/RyanWong/+_-_Laccase/Multistrain", units = "cm", width = 20, height = 10, dpi = 600)
+
+ggsave(paste(name, ".svg", sep = ""), device = "svg", path = "Z:/mayor_lab/RyanWong/+_-_Laccase/Multistrain", units = "cm", width = 20, height = 10, dpi = 600)
+
+```
