@@ -1,0 +1,245 @@
+---
+title: "BY4741 DEP Z-Score Heat Map - Figure 3B"
+author: "Sahil Chandhok"
+date: "2025-11-12"
+output: html_document
+---
+
+##Load in packages and set seed
+
+```{r}
+library(readxl)
+library(writexl)
+library(dplyr)
+library(tidyverse)
+library(tidyr)
+library(imputeLCMD)
+library(tibble)
+library(pheatmap)
+set.seed(20251112)
+
+```
+
+##Load in the data and clean up
+
+```{r}
+
+Normalized.Data <- read_xlsx("D:/Sahil Data/Collaboration/Ryan - Collaboration/November 5th 2025 Onwards/BY4741 Over Time/DEP_BY4741_Over_Time_Heatmap.xlsx")
+
+##Remove PG.Genes
+
+Normalized.Data <- Normalized.Data %>% select(-PG.Genes)
+Normalized.Data <- distinct(Normalized.Data, PG.ProteinGroups, .keep_all = TRUE)
+
+```
+
+##Calculate the means for all samples
+
+```{r}
+
+##Empty vector Day 1
+
+EV.Day1 <- Normalized.Data %>% select(PG.ProteinGroups, `[2] EV1_Day1_312_Liz_EH021_A4_100ng.raw.PG.Quantity`,
+                                      `[6] EV2_Day1_313_Liz_EH021_B4_100ng.raw.PG.Quantity`, `[10] EV3_Day1_314_Liz_EH021_C4_100ng.raw.PG.Quantity`,
+                                      `[14] EV4_Day1_315_Liz_EH021_D4_100ng.raw.PG.Quantity`)
+EV.Day1 <- data.frame(EV.Day1)                                      
+
+EV.Day1$EV.Day1.Mean <- (EV.Day1$X.2..EV1_Day1_312_Liz_EH021_A4_100ng.raw.PG.Quantity + EV.Day1$X.6..EV2_Day1_313_Liz_EH021_B4_100ng.raw.PG.Quantity +
+                           EV.Day1$X.10..EV3_Day1_314_Liz_EH021_C4_100ng.raw.PG.Quantity + EV.Day1$X.14..EV4_Day1_315_Liz_EH021_D4_100ng.raw.PG.Quantity)/4
+
+EV.Day1 <- EV.Day1 %>% select(PG.ProteinGroups, EV.Day1.Mean)
+                                      
+
+##Empty Vector Day 2
+
+EV.Day2 <- Normalized.Data %>% select(PG.ProteinGroups, `[3] EV1_Day2_316_Liz_EH021_E4_100ng.raw.PG.Quantity`, `[7] EV2_Day2_317_Liz_EH021_F4_100ng.raw.PG.Quantity`, 
+                                      `[11] EV3_Day2_318_Liz_EH021_G4_100ng.raw.PG.Quantity`, `[15] EV4_Day2_319_Liz_EH021_H4_100ng.raw.PG.Quantity`)
+EV.Day2 <- data.frame(EV.Day2)
+
+EV.Day2$EV.Day2.Mean <- (EV.Day2$X.3..EV1_Day2_316_Liz_EH021_E4_100ng.raw.PG.Quantity + EV.Day2$X.7..EV2_Day2_317_Liz_EH021_F4_100ng.raw.PG.Quantity +
+                   EV.Day2$X.11..EV3_Day2_318_Liz_EH021_G4_100ng.raw.PG.Quantity + EV.Day2$X.15..EV4_Day2_319_Liz_EH021_H4_100ng.raw.PG.Quantity)/4 
+
+EV.Day2 <- EV.Day2 %>% select(PG.ProteinGroups, EV.Day2.Mean)
+
+##Empty Vector Day 3
+
+EV.Day3 <- Normalized.Data %>% select(PG.ProteinGroups, `[4] EV1_Day3_320_Liz_EH021_A5_100ng.raw.PG.Quantity`, `[8] EV2_Day3_324_Liz_EH021_B5_100ng.raw.PG.Quantity`,
+                                      `[12] EV3_Day3_355_Liz_EH021_C8_100ng(wasC5).raw.PG.Quantity` , `[16] EV4_Day3_326_Liz_EH021_D5_100ng.raw.PG.Quantity`)
+
+                                      
+ 
+EV.Day3 <- data.frame(EV.Day3)
+
+EV.Day3$EV.Day3.Mean <- (EV.Day3$X.4..EV1_Day3_320_Liz_EH021_A5_100ng.raw.PG.Quantity + EV.Day3$X.8..EV2_Day3_324_Liz_EH021_B5_100ng.raw.PG.Quantity +
+                   EV.Day3$X.12..EV3_Day3_355_Liz_EH021_C8_100ng.wasC5..raw.PG.Quantity + EV.Day3$X.16..EV4_Day3_326_Liz_EH021_D5_100ng.raw.PG.Quantity)/4
+
+EV.Day3 <- EV.Day3 %>% select(PG.ProteinGroups, EV.Day3.Mean)
+
+##Empty Vector Day 4
+
+EV.Day4 <- Normalized.Data %>% select(PG.ProteinGroups, `[5] EV1_Day4_327_Liz_EH021_E5_100ng.raw.PG.Quantity`, 
+                                      `[9] EV2_Day4_328_Liz_EH021_F5_100ng.raw.PG.Quantity`, `[13] EV3_Day4_329_Liz_EH021_G5_100ng.raw.PG.Quantity`,
+                                      `[17] EV4_Day4_330_Liz_EH021_H5_100ng.raw.PG.Quantity`)
+                                      
+
+EV.Day4 <- data.frame(EV.Day4)
+
+EV.Day4$EV.Day4.Mean <- (EV.Day4$X.5..EV1_Day4_327_Liz_EH021_E5_100ng.raw.PG.Quantity + EV.Day4$X.9..EV2_Day4_328_Liz_EH021_F5_100ng.raw.PG.Quantity + EV.Day4$X.13..EV3_Day4_329_Liz_EH021_G5_100ng.raw.PG.Quantity +
+                   EV.Day4$X.17..EV4_Day4_330_Liz_EH021_H5_100ng.raw.PG.Quantity)/4
+
+EV.Day4 <- EV.Day4 %>% select(PG.ProteinGroups, EV.Day4.Mean)
+
+
+##TtL Day 1
+
+TtL.Day1 <- Normalized.Data %>% select(PG.ProteinGroups, `[19] TtL1_Day1_331_Liz_EH021_A6_100ng.raw.PG.Quantity`, `[23] TtL2_Day1_332_Liz_EH021_B6_100ng.raw.PG.Quantity`,
+                                       `[27] TtL3_Day1_336_Liz_EH021_C6_100ng.raw.PG.Quantity`, `[31] TtL4_Day1_337_Liz_EH021_D6_100ng.raw.PG.Quantity`)
+
+                                       
+TtL.Day1 <- data.frame(TtL.Day1)
+
+TtL.Day1$TtL.Day1.Mean <- (TtL.Day1$X.19..TtL1_Day1_331_Liz_EH021_A6_100ng.raw.PG.Quantity + TtL.Day1$X.23..TtL2_Day1_332_Liz_EH021_B6_100ng.raw.PG.Quantity +
+                    TtL.Day1$X.27..TtL3_Day1_336_Liz_EH021_C6_100ng.raw.PG.Quantity + TtL.Day1$X.31..TtL4_Day1_337_Liz_EH021_D6_100ng.raw.PG.Quantity)/4
+
+TtL.Day1 <- TtL.Day1 %>% select(PG.ProteinGroups, TtL.Day1.Mean)
+
+##TtL Day 2
+
+TtL.Day2 <- Normalized.Data %>% select(PG.ProteinGroups, `[20] TtL1_Day2_338_Liz_EH021_E6_100ng.raw.PG.Quantity`, `[24] TtL2_Day2_339_Liz_EH021_F6_100ng.raw.PG.Quantity`,
+                                       `[28] TtL3_Day2_340_Liz_EH021_G6_100ng.raw.PG.Quantity`, `[32] TtL4_Day2_341_Liz_EH021_H6_100ng.raw.PG.Quantity`)
+
+TtL.Day2 <- data.frame(TtL.Day2)
+
+TtL.Day2$TtL.Day2.Mean <- (TtL.Day2$X.20..TtL1_Day2_338_Liz_EH021_E6_100ng.raw.PG.Quantity + TtL.Day2$X.24..TtL2_Day2_339_Liz_EH021_F6_100ng.raw.PG.Quantity +
+               TtL.Day2$X.28..TtL3_Day2_340_Liz_EH021_G6_100ng.raw.PG.Quantity + TtL.Day2$X.32..TtL4_Day2_341_Liz_EH021_H6_100ng.raw.PG.Quantity)/4
+
+TtL.Day2 <- TtL.Day2 %>% select(PG.ProteinGroups, TtL.Day2.Mean)
+
+##TtL Day 3
+
+TtL.Day3 <- Normalized.Data %>% select(PG.ProteinGroups, `[21] TtL1_Day3_342_Liz_EH021_A7_100ng.raw.PG.Quantity`, `[25] TtL2_Day3_343_Liz_EH021_B7_100ng.raw.PG.Quantity`,
+                                       `[29] TtL3_Day3_344_Liz_EH021_C7_100ng.raw.PG.Quantity`, `[33] TtL4_Day3_348_Liz_EH021_D7_100ng.raw.PG.Quantity`)
+
+TtL.Day3 <- data.frame(TtL.Day3)
+
+TtL.Day3$TtL.Day3.Mean <- (TtL.Day3$X.21..TtL1_Day3_342_Liz_EH021_A7_100ng.raw.PG.Quantity + TtL.Day3$X.25..TtL2_Day3_343_Liz_EH021_B7_100ng.raw.PG.Quantity +
+                    TtL.Day3$X.29..TtL3_Day3_344_Liz_EH021_C7_100ng.raw.PG.Quantity + TtL.Day3$X.33..TtL4_Day3_348_Liz_EH021_D7_100ng.raw.PG.Quantity)/4
+
+TtL.Day3 <- TtL.Day3 %>% select(PG.ProteinGroups, TtL.Day3.Mean)
+
+##TtL Day 4
+
+TtL.Day4 <- Normalized.Data %>% select(PG.ProteinGroups, `[22] TtL1_Day4_349_Liz_EH021_E7_100ng.raw.PG.Quantity` , `[26] TtL2_Day4_350_Liz_EH021_F7_100ng.raw.PG.Quantity`,
+                                       `[30] TtL3_Day4_351_Liz_EH021_G7_100ng.raw.PG.Quantity`, `[34] TtL4_Day4_352_Liz_EH021_H7_100ng.raw.PG.Quantity`)
+
+                                       
+TtL.Day4 <- data.frame(TtL.Day4)
+
+TtL.Day4$TtL.Day4.Mean <- (TtL.Day4$X.22..TtL1_Day4_349_Liz_EH021_E7_100ng.raw.PG.Quantity + TtL.Day4$X.26..TtL2_Day4_350_Liz_EH021_F7_100ng.raw.PG.Quantity +
+                    TtL.Day4$X.30..TtL3_Day4_351_Liz_EH021_G7_100ng.raw.PG.Quantity + TtL.Day4$X.34..TtL4_Day4_352_Liz_EH021_H7_100ng.raw.PG.Quantity)/4
+
+TtL.Day4 <- TtL.Day4 %>% select(PG.ProteinGroups, TtL.Day4.Mean)
+
+
+```
+
+##Merging the tables
+
+```{r}
+
+##Merging Tables
+
+Merged.List <- list (EV.Day1, EV.Day2, EV.Day3, EV.Day4,
+                     TtL.Day1, TtL.Day2, TtL.Day3, TtL.Day4)
+
+Merged.Table <- Merged.List %>% reduce(full_join, by = "PG.ProteinGroups")
+
+```
+
+##Calculating the overall mean and standard deviation across all the samples
+
+```{r}
+
+##Calculating overall mean
+
+Merged.Table$Overall.Mean <- (Merged.Table$EV.Day1.Mean + Merged.Table$EV.Day2.Mean + Merged.Table$EV.Day3.Mean + Merged.Table$EV.Day4.Mean +
+                                Merged.Table$TtL.Day1.Mean + Merged.Table$TtL.Day2.Mean + Merged.Table$TtL.Day3.Mean + Merged.Table$TtL.Day4.Mean)/8
+
+Merged.Table$Std.Dev <- apply(Merged.Table[2:9], 1, sd, na.rm = TRUE)
+
+```
+
+##Calculating the Z-scores for each sample
+
+```{r}
+
+##Calculate Z-scores
+
+Merged.Table$EV.Day1.ZScore <- (Merged.Table$EV.Day1.Mean - Merged.Table$Overall.Mean)/ Merged.Table$Std.Dev
+Merged.Table$EV.Day2.ZScore <- (Merged.Table$EV.Day2.Mean - Merged.Table$Overall.Mean)/ Merged.Table$Std.Dev
+Merged.Table$EV.Day3.ZScore <- (Merged.Table$EV.Day3.Mean - Merged.Table$Overall.Mean)/ Merged.Table$Std.Dev
+Merged.Table$EV.Day4.ZScore <- (Merged.Table$EV.Day4.Mean - Merged.Table$Overall.Mean)/ Merged.Table$Std.Dev
+
+Merged.Table$TtL.Day1.ZScore <- (Merged.Table$TtL.Day1.Mean - Merged.Table$Overall.Mean)/ Merged.Table$Std.Dev
+Merged.Table$TtL.Day2.ZScore <- (Merged.Table$TtL.Day2.Mean - Merged.Table$Overall.Mean)/ Merged.Table$Std.Dev
+Merged.Table$TtL.Day3.ZScore <- (Merged.Table$TtL.Day3.Mean - Merged.Table$Overall.Mean)/ Merged.Table$Std.Dev
+Merged.Table$TtL.Day4.ZScore <- (Merged.Table$TtL.Day4.Mean - Merged.Table$Overall.Mean)/ Merged.Table$Std.Dev
+
+write_xlsx(Merged.Table, "D:/Sahil Data/Collaboration/Ryan - Collaboration/November 5th 2025 Onwards/BY4741 Over Time/DEP_BY4741_Over_Time_Heatmap_ZScores.xlsx")
+
+```
+
+##Generating the heat map table
+
+```{r}
+
+##Making heatmap table
+
+Merged.Table <- Merged.Table %>% select(PG.ProteinGroups, EV.Day1.ZScore, EV.Day2.ZScore, EV.Day3.ZScore,
+                                        EV.Day4.ZScore, TtL.Day1.ZScore, TtL.Day2.ZScore, TtL.Day3.ZScore,
+                                        TtL.Day4.ZScore)
+
+##Looking at minimum and maximum values to set the scale of the heat map
+Merged.Table.Min <- min(Merged.Table[2:9])
+Merged.Table.Max <- max(Merged.Table[2:9])
+
+```
+
+##Generating the heat map and breaking up the rows into separate clusters
+
+```{r}
+
+##Generating the heatmap
+
+Merged.Table <- Merged.Table %>% remove_rownames %>% column_to_rownames(var="PG.ProteinGroups")
+
+heatmap_color_pallate <- colorRampPalette(c('blue3','blue2','blue1','white','red1','red2','red3'))(400)
+breaks <- seq(-2.5, 2.5, length.out = 400)
+heatmap <- pheatmap(Merged.Table, color = heatmap_color_pallate, fontsize = 7.5,breaks = breaks,clustering_distance_rows = "manhattan",
+                    cluster_cols = FALSE,
+                    clustering_method = "ward.D",
+                    border_color = NA,
+                    cutree_rows = 6)
+
+##Making the clustering of the rows distinguishable
+
+Clusters <- cutree(heatmap$tree_row, 7)
+Annot <- data.frame(Clusters)
+rownames(Annot) <- rownames(Merged.Table)
+
+heatmap <- pheatmap(Merged.Table, color = heatmap_color_pallate, fontsize = 7.5,breaks = breaks,clustering_distance_rows = "manhattan",
+                    cluster_cols = FALSE,
+                    clustering_method = "ward.D",
+                    border_color = NA,
+                    cutree_rows = 6,
+                    annotation_row = Annot)
+
+##Adding cluster annotations to each gene; The data frame is then saved as an excel file
+
+Annot.For.Excel <- rownames_to_column(Annot, "Proteins")
+
+write_xlsx(Annot.For.Excel, "D:/Sahil Data/Collaboration/Ryan - Collaboration/November 5th 2025 Onwards/BY4741 Over Time/DEP_BY4741_Over_Time_Heatmap_Clustering.xlsx")
+
+```
+
+

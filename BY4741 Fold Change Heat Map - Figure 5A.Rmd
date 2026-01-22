@@ -1,0 +1,99 @@
+---
+title: "BY4741 Fold Change Heat Map - Figure 5A"
+date: "2025-08-19"
+author: "Sahil Chandhok"
+output: html_document
+---
+
+##Loading in packages and setting the seed
+
+```{r}
+library(dplyr)
+library(tidyverse)
+library(readxl)
+library(readr)
+library(pheatmap)
+library(writexl)
+library(tibble)
+library(readxl)
+set.seed(20250729)
+
+```
+
+##Loading in the LIMMA generated data
+
+```{r}
+MTL.BY.Hits <- read_xlsx("D:/Sahil Data/Collaboration/Ryan - Collaboration/July 29th 2025 Heat Maps/LIMMA_Hits_BY_MtL_vs_BY_EV.xlsx")
+MTL.BY.Hits <- MTL.BY.Hits %>% select(proteins, logFC)
+colnames(MTL.BY.Hits) <- c("Protein", "MTL v/s BY")
+
+TTL.BY.Hits <- read_xlsx("D:/Sahil Data/Collaboration/Ryan - Collaboration/July 29th 2025 Heat Maps/LIMMA_Hits_BY_TtL_vs_BY_EV.xlsx")
+TTL.BY.Hits <- TTL.BY.Hits %>% select(proteins, logFC)
+colnames(TTL.BY.Hits) <- c("Protein", "TTL v/s BY")
+
+##Combining both data frames
+Combined.Table <- full_join(MTL.BY.Hits, TTL.BY.Hits, by = "Protein")
+Combined.Table <- Combined.Table %>% replace(is.na(.),0)
+Combined.Table <- Combined.Table[-35,]
+Hits <- Combined.Table$Protein
+Hits <- data.frame(Hits)
+colnames(Hits) <- "Protein"
+
+##Loading in unfiltered Data
+MTL.BY.ALL <- read_xlsx("D:/Sahil Data/Collaboration/Ryan - Collaboration/July 29th 2025 Heat Maps/Combined Heat Map/LIMMA_BY_MtL_vs_BY_EV.xlsx")
+MTL.BY.ALL <- MTL.BY.ALL %>% select(proteins, logFC)
+colnames(MTL.BY.ALL) <- c("Protein", "MTL v/s BY")
+
+TTL.BY.ALL <- read_xlsx("D:/Sahil Data/Collaboration/Ryan - Collaboration/July 29th 2025 Heat Maps/Combined Heat Map/LIMMA_BY_TtL_vs_BY_EV.xlsx")
+TTL.BY.ALL <- TTL.BY.ALL %>% select(proteins, logFC)
+colnames(TTL.BY.ALL) <- c("Protein", "TTL v/s BY")
+
+Unfiltered.Data <- full_join(MTL.BY.ALL, TTL.BY.ALL, by = "Protein")
+
+```
+
+
+##Merging Tables and looking at maximum and minimum values to set the scale of the heat map
+
+```{r}
+##Merging the tables
+Hits <- left_join(Hits, Unfiltered.Data, by = "Protein")
+
+##Looking at minimum and maximum values
+Hits.Min <- min(Hits[,2:3])
+Hits.Max <- max(Hits[,2:3])
+```
+
+##Generating the heat map and breaking up the rows into separate clusters
+
+```{r}
+
+##Generating the heat map and making the clustering of the rows distinguishable
+
+Hits <- Hits %>% remove_rownames %>% column_to_rownames(var="Protein")
+
+heatmap_color_pallate <- colorRampPalette(c('blue4','blue3','blue2','blue1','white','red1','red2','red3','red4'))(400)
+breaks <- seq(-4, 4, length.out = 400)
+heatmap <- pheatmap(Hits, color = heatmap_color_pallate, fontsize = 7.5,breaks = breaks,clustering_distance_rows = "manhattan",
+                    cluster_cols = FALSE,
+                    clustering_method = "ward.D",
+                    border_color = NA,
+                    cutree_rows = 5)
+Clusters <- cutree(heatmap$tree_row, 5)
+Annot <- data.frame(Clusters)
+rownames(Annot) <- rownames(Hits)
+
+heatmap <- pheatmap(Hits, color = heatmap_color_pallate, fontsize = 7.5,breaks = breaks,clustering_distance_rows = "manhattan",
+                    cluster_cols = FALSE,
+                    clustering_method = "ward.D",
+                    border_color = NA,
+                    cutree_rows = 5,
+                    annotation_row = Annot)
+
+##Adding cluster annotations to each gene; The data frame is then saved as an excel file
+
+Annot.For.Excel <- rownames_to_column(Annot, "Proteins")
+
+write_xlsx(Annot.For.Excel, "D:/Sahil Data/Collaboration/Ryan - Collaboration/July 29th 2025 Heat Maps/BY Heat Map/August 19th 2025 BY Heat Map Clustering No White Spaces.xlsx")
+
+```

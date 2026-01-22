@@ -1,0 +1,345 @@
+---
+title: "CLIB549 Unique DEP Z-Score Heat Map"
+date: "2025-11-07"
+author: "Sahil Chandhok"
+output: html_document
+---
+
+##Load in packages and set seed
+
+```{r}
+library(readxl)
+library(writexl)
+library(dplyr)
+library(tidyverse)
+library(tidyr)
+library(imputeLCMD)
+library(tibble)
+library(pheatmap)
+set.seed(20251106)
+
+```
+
+##Load in data and clean up
+
+```{r}
+
+Normalized.Data <- read_xlsx("D:/Sahil Data/Collaboration/Ryan - Collaboration/November 5th 2025 Onwards/549 Heat Map/549_Normalized_Prot_quantities.xlsx")
+
+
+##Remove PG.ProteinNames
+
+Normalized.Data <- Normalized.Data %>% select(-PG.ProteinNames)
+
+```
+
+##Calculate the means for all samples
+
+```{r}
+##BY4741 Empty Vector
+
+BY4741.EV <- Normalized.Data %>% select(PG.ProteinGroups, `[1] Ryan_BY4741 EV_1_50ng_5-1-2025_Slot1-13_19496.d.PG.Quantity`,
+                                        `[2] Ryan_BY4741 EV_2_50ng_5-1-2025_Slot1-14_19497.d.PG.Quantity`,
+                                        `[3] Ryan_BY4741 EV_3_50ng_5-1-2025_Slot1-15_19498.d.PG.Quantity`,
+                                        `[4] Ryan_BY4741 EV_4_50ng_5-1-2025_Slot1-16_19499.d.PG.Quantity`)
+BY4741.EV <- data.frame(BY4741.EV)
+
+BY4741.EV$BY4741.EV.Mean <- (BY4741.EV$X.1..Ryan_BY4741.EV_1_50ng_5.1.2025_Slot1.13_19496.d.PG.Quantity +
+                               BY4741.EV$X.2..Ryan_BY4741.EV_2_50ng_5.1.2025_Slot1.14_19497.d.PG.Quantity +
+                               BY4741.EV$X.3..Ryan_BY4741.EV_3_50ng_5.1.2025_Slot1.15_19498.d.PG.Quantity +
+                               BY4741.EV$X.4..Ryan_BY4741.EV_4_50ng_5.1.2025_Slot1.16_19499.d.PG.Quantity)/4
+
+BY4741.EV <- BY4741.EV %>% select(PG.ProteinGroups, BY4741.EV.Mean)
+
+
+##BY4741 TtL
+
+BY4741.TtL <- Normalized.Data %>% select(PG.ProteinGroups, `[5] Ryan_BY4741 TtL_1_50ng_5-1-2025_Slot1-17_19500.d.PG.Quantity`,
+                                         `[6] Ryan_BY4741 TtL_2_50ng_5-2-2025_Slot1-18_19501.d.PG.Quantity`,
+                                         `[7] Ryan_BY4741 TtL_3_50ng_5-2-2025_Slot1-19_19503.d.PG.Quantity`,
+                                         `[8] Ryan_BY4741 TtL_4_50ng_5-2-2025_Slot1-20_19504.d.PG.Quantity`)
+BY4741.TtL <- data.frame(BY4741.TtL)
+
+BY4741.TtL$BY4741.TtL.Mean <- (BY4741.TtL$X.5..Ryan_BY4741.TtL_1_50ng_5.1.2025_Slot1.17_19500.d.PG.Quantity +
+                                 BY4741.TtL$X.6..Ryan_BY4741.TtL_2_50ng_5.2.2025_Slot1.18_19501.d.PG.Quantity +
+                                 BY4741.TtL$X.7..Ryan_BY4741.TtL_3_50ng_5.2.2025_Slot1.19_19503.d.PG.Quantity +
+                                 BY4741.TtL$X.8..Ryan_BY4741.TtL_4_50ng_5.2.2025_Slot1.20_19504.d.PG.Quantity)/4
+
+BY4741.TtL <- BY4741.TtL %>% select(PG.ProteinGroups, BY4741.TtL.Mean)
+
+
+
+##BY4741 MtL
+
+BY4741.MtL <- Normalized.Data %>% select(PG.ProteinGroups, `[9] Ryan_BY4741 MtL_1_50ng_5-2-2025_Slot1-21_19505.d.PG.Quantity`,
+                                         `[10] Ryan_BY4741 MtL_2_50ng_5-2-2025_Slot1-22_19506.d.PG.Quantity`,
+                                         `[11] Ryan_BY4741 MtL_3_50ng_5-2-2025_Slot1-23_19507.d.PG.Quantity`,
+                                         `[12] Ryan_BY4741 MtL_4_50ng_5-2-2025_Slot1-24_19508.d.PG.Quantity`)
+
+BY4741.MtL <- data.frame(BY4741.MtL)
+
+BY4741.MtL$BY4741.MtL.Mean <- (BY4741.MtL$X.9..Ryan_BY4741.MtL_1_50ng_5.2.2025_Slot1.21_19505.d.PG.Quantity +
+                                 BY4741.MtL$X.10..Ryan_BY4741.MtL_2_50ng_5.2.2025_Slot1.22_19506.d.PG.Quantity +
+                                 BY4741.MtL$X.11..Ryan_BY4741.MtL_3_50ng_5.2.2025_Slot1.23_19507.d.PG.Quantity +
+                                 BY4741.MtL$X.12..Ryan_BY4741.MtL_4_50ng_5.2.2025_Slot1.24_19508.d.PG.Quantity)/4
+
+BY4741.MtL <- BY4741.MtL %>% select(PG.ProteinGroups, BY4741.MtL.Mean)
+
+
+##CLIB549 EV
+
+CLIB549.EV <- Normalized.Data %>% select(PG.ProteinGroups, `[13] Ryan_CLIB549 EV_1_50ng_5-3-2025_Slot1-37_19528.d.PG.Quantity`,
+                                         `[14] Ryan_CLIB549 EV_2_50ng_5-3-2025_Slot1-38_19529.d.PG.Quantity`,
+                                         `[15] Ryan_CLIB549 EV_3_50ng_5-3-2025_Slot1-39_19530.d.PG.Quantity`,
+                                         `[16] Ryan_CLIB549 EV_4_50ng_5-3-2025_Slot1-40_19531.d.PG.Quantity`)
+CLIB549.EV <- data.frame(CLIB549.EV)
+
+CLIB549.EV$CLIB549.EV.Mean <- (CLIB549.EV$X.13..Ryan_CLIB549.EV_1_50ng_5.3.2025_Slot1.37_19528.d.PG.Quantity +
+                                 CLIB549.EV$X.14..Ryan_CLIB549.EV_2_50ng_5.3.2025_Slot1.38_19529.d.PG.Quantity +
+                                 CLIB549.EV$X.15..Ryan_CLIB549.EV_3_50ng_5.3.2025_Slot1.39_19530.d.PG.Quantity +
+                                 CLIB549.EV$X.16..Ryan_CLIB549.EV_4_50ng_5.3.2025_Slot1.40_19531.d.PG.Quantity)/4
+
+CLIB549.EV <- CLIB549.EV %>% select(PG.ProteinGroups, CLIB549.EV.Mean)
+
+##CLIB549 TtL
+
+CLIB549.TtL <- Normalized.Data %>% select(PG.ProteinGroups, `[17] Ryan_CLIB549 TtL_1_50ng_5-3-2025_Slot1-41_19532.d.PG.Quantity`,
+                                          `[18] Ryan_CLIB549 TtL_2_50ng_5-3-2025_Slot1-42_19533.d.PG.Quantity`,
+                                          `[19] Ryan_CLIB549 TtL_3_50ng_5-3-2025_Slot1-43_19535.d.PG.Quantity`,
+                                          `[20] Ryan_CLIB549 TtL_4_50ng_5-3-2025_Slot1-44_19536.d.PG.Quantity`)
+
+CLIB549.TtL <- data.frame(CLIB549.TtL)
+
+CLIB549.TtL$CLIB549.TtL.Mean <- (CLIB549.TtL$X.17..Ryan_CLIB549.TtL_1_50ng_5.3.2025_Slot1.41_19532.d.PG.Quantity + 
+                                   CLIB549.TtL$X.18..Ryan_CLIB549.TtL_2_50ng_5.3.2025_Slot1.42_19533.d.PG.Quantity +
+                                   CLIB549.TtL$X.19..Ryan_CLIB549.TtL_3_50ng_5.3.2025_Slot1.43_19535.d.PG.Quantity + 
+                                   CLIB549.TtL$X.20..Ryan_CLIB549.TtL_4_50ng_5.3.2025_Slot1.44_19536.d.PG.Quantity)/4
+
+CLIB549.TtL <- CLIB549.TtL %>% select(PG.ProteinGroups, CLIB549.TtL.Mean)
+
+##CLIB549 MtL
+
+CLIB549.MtL <- Normalized.Data %>% select(PG.ProteinGroups, `[21] Ryan_CLIB549 MtL_1_50ng_5-3-2025_Slot1-45_19537.d.PG.Quantity`,
+                                          `[22] Ryan_CLIB549 MtL_2_50ng_5-3-2025_Slot1-46_19538.d.PG.Quantity`,
+                                          `[23] Ryan_CLIB549 MtL_3_50ng_5-3-2025_Slot1-47_19539.d.PG.Quantity`,
+                                          `[24] Ryan_CLIB549 MtL_4_50ng_5-3-2025_Slot1-48_19540.d.PG.Quantity`)
+
+CLIB549.MtL <- data.frame(CLIB549.MtL)
+
+CLIB549.MtL$CLIB549.MtL.Mean <- (CLIB549.MtL$X.21..Ryan_CLIB549.MtL_1_50ng_5.3.2025_Slot1.45_19537.d.PG.Quantity +
+                                   CLIB549.MtL$X.22..Ryan_CLIB549.MtL_2_50ng_5.3.2025_Slot1.46_19538.d.PG.Quantity +
+                                   CLIB549.MtL$X.23..Ryan_CLIB549.MtL_3_50ng_5.3.2025_Slot1.47_19539.d.PG.Quantity +
+                                   CLIB549.MtL$X.24..Ryan_CLIB549.MtL_4_50ng_5.3.2025_Slot1.48_19540.d.PG.Quantity)/4
+
+CLIB549.MtL <- CLIB549.MtL %>% select(PG.ProteinGroups, CLIB549.MtL.Mean)
+
+
+##CLIB631 EV
+
+CLIB631.EV <- Normalized.Data %>% select(PG.ProteinGroups, `[25] Ryan_CLIB631 EV_1_50ng_5-3-2025_Slot1-49_19544.d.PG.Quantity`,
+                                         `[26] Ryan_CLIB631 EV_2_50ng_5-3-2025_Slot1-50_19545.d.PG.Quantity`,
+                                         `[27] Ryan_CLIB631 EV_3_50ng_5-4-2025_Slot1-51_19546.d.PG.Quantity`,
+                                         `[28] Ryan_CLIB631 EV_4_50ng_5-4-2025_Slot1-52_19547.d.PG.Quantity`)
+
+CLIB631.EV <- data.frame(CLIB631.EV)
+
+CLIB631.EV$CLIB631.EV.Mean <- (CLIB631.EV$X.25..Ryan_CLIB631.EV_1_50ng_5.3.2025_Slot1.49_19544.d.PG.Quantity +
+                                 CLIB631.EV$X.26..Ryan_CLIB631.EV_2_50ng_5.3.2025_Slot1.50_19545.d.PG.Quantity +
+                                 CLIB631.EV$X.27..Ryan_CLIB631.EV_3_50ng_5.4.2025_Slot1.51_19546.d.PG.Quantity +
+                                 CLIB631.EV$X.28..Ryan_CLIB631.EV_4_50ng_5.4.2025_Slot1.52_19547.d.PG.Quantity)/4
+
+CLIB631.EV <- CLIB631.EV %>% select(PG.ProteinGroups, CLIB631.EV.Mean)
+
+
+
+##CLIB631 TtL
+
+CLIB631.TtL <- Normalized.Data %>% select(PG.ProteinGroups, `[29] Ryan_CLIB631 TtL_1_50ng_5-4-2025_Slot1-53_19548.d.PG.Quantity`,
+                                          `[30] Ryan_CLIB631 TtL_2_50ng_5-4-2025_Slot1-54_19549.d.PG.Quantity`,
+                                          `[31] Ryan_CLIB631 TtL_3_50ng_5-4-2025_Slot1-55_19551.d.PG.Quantity`,
+                                          `[32] Ryan_CLIB631 TtL_4_50ng_5-4-2025_Slot1-56_19552.d.PG.Quantity`)
+
+CLIB631.TtL <- data.frame(CLIB631.TtL)
+
+CLIB631.TtL$CLIB631.TtL.Mean <- (CLIB631.TtL$X.29..Ryan_CLIB631.TtL_1_50ng_5.4.2025_Slot1.53_19548.d.PG.Quantity +
+                                   CLIB631.TtL$X.30..Ryan_CLIB631.TtL_2_50ng_5.4.2025_Slot1.54_19549.d.PG.Quantity +
+                                   CLIB631.TtL$X.31..Ryan_CLIB631.TtL_3_50ng_5.4.2025_Slot1.55_19551.d.PG.Quantity +
+                                   CLIB631.TtL$X.32..Ryan_CLIB631.TtL_4_50ng_5.4.2025_Slot1.56_19552.d.PG.Quantity)/4
+
+CLIB631.TtL <- CLIB631.TtL %>% select(PG.ProteinGroups, CLIB631.TtL.Mean)
+
+
+
+##CLIB631 MtL
+
+CLIB631.MtL <- Normalized.Data %>% select(PG.ProteinGroups, `[33] Ryan_CLIB631 MtL_1_50ng_5-4-2025_Slot1-57_19553.d.PG.Quantity`,
+                                          `[34] Ryan_CLIB631 MtL_2_50ng_5-4-2025_Slot1-58_19554.d.PG.Quantity`,
+                                          `[35] Ryan_CLIB631 MtL_3_50ng_5-4-2025_Slot1-59_19555.d.PG.Quantity`,
+                                          `[36] Ryan_CLIB631 MtL_4_50ng_5-4-2025_Slot1-60_19556.d.PG.Quantity`)
+CLIB631.MtL <- data.frame(CLIB631.MtL)
+
+CLIB631.MtL$CLIB631.MtL.Mean <- (CLIB631.MtL$X.33..Ryan_CLIB631.MtL_1_50ng_5.4.2025_Slot1.57_19553.d.PG.Quantity +
+                                   CLIB631.MtL$X.34..Ryan_CLIB631.MtL_2_50ng_5.4.2025_Slot1.58_19554.d.PG.Quantity +
+                                   CLIB631.MtL$X.35..Ryan_CLIB631.MtL_3_50ng_5.4.2025_Slot1.59_19555.d.PG.Quantity +
+                                   CLIB631.MtL$X.36..Ryan_CLIB631.MtL_4_50ng_5.4.2025_Slot1.60_19556.d.PG.Quantity)/4
+
+CLIB631.MtL <- CLIB631.MtL %>% select(PG.ProteinGroups, CLIB631.MtL.Mean)
+
+##CLIB649 EV
+
+CLIB649.EV <- Normalized.Data %>% select(PG.ProteinGroups, `[37] Ryan_CLIB649 EV_1_50ng_5-2-2025_Slot1-25_19512.d.PG.Quantity`,
+                                         `[38] Ryan_CLIB649 EV_2_50ng_5-2-2025_Slot1-26_19513.d.PG.Quantity`,
+                                         `[39] Ryan_CLIB649 EV_3_50ng_5-2-2025_Slot1-27_19514.d.PG.Quantity`,
+                                         `[40] Ryan_CLIB649 EV_4_50ng_5-2-2025_Slot1-28_19515.d.PG.Quantity`)
+
+
+CLIB649.EV <- data.frame(CLIB649.EV)
+
+CLIB649.EV$CLIB649.EV.Mean <- (CLIB649.EV$X.37..Ryan_CLIB649.EV_1_50ng_5.2.2025_Slot1.25_19512.d.PG.Quantity +
+                                 CLIB649.EV$X.38..Ryan_CLIB649.EV_2_50ng_5.2.2025_Slot1.26_19513.d.PG.Quantity +
+                                 CLIB649.EV$X.39..Ryan_CLIB649.EV_3_50ng_5.2.2025_Slot1.27_19514.d.PG.Quantity +
+                                 CLIB649.EV$X.40..Ryan_CLIB649.EV_4_50ng_5.2.2025_Slot1.28_19515.d.PG.Quantity)/4
+
+
+CLIB649.EV <- CLIB649.EV %>% select(PG.ProteinGroups, CLIB649.EV.Mean)
+
+
+##CLIB649 TtL
+
+CLIB649.TtL <- Normalized.Data %>% select(PG.ProteinGroups, `[41] Ryan_CLIB649 TtL_1_50ng_5-2-2025_Slot1-29_19516.d.PG.Quantity`,
+                                          `[42] Ryan_CLIB649 TtL_2_50ng_5-2-2025_Slot1-30_19517.d.PG.Quantity`,
+                                          `[43] Ryan_CLIB649 TtL_3_50ng_5-2-2025_Slot1-31_19519.d.PG.Quantity`,
+                                          `[44] Ryan_CLIB649 TtL_4_50ng_5-2-2025_Slot1-32_19520.d.PG.Quantity`)
+CLIB649.TtL <- data.frame(CLIB649.TtL)
+
+CLIB649.TtL$CLIB649.TtL.Mean <- (CLIB649.TtL$X.41..Ryan_CLIB649.TtL_1_50ng_5.2.2025_Slot1.29_19516.d.PG.Quantity +
+                                   CLIB649.TtL$X.42..Ryan_CLIB649.TtL_2_50ng_5.2.2025_Slot1.30_19517.d.PG.Quantity +
+                                   CLIB649.TtL$X.43..Ryan_CLIB649.TtL_3_50ng_5.2.2025_Slot1.31_19519.d.PG.Quantity +
+                                   CLIB649.TtL$X.44..Ryan_CLIB649.TtL_4_50ng_5.2.2025_Slot1.32_19520.d.PG.Quantity)/4
+
+CLIB649.TtL <- CLIB649.TtL %>% select(PG.ProteinGroups, CLIB649.TtL.Mean)
+
+##CLIB649 MtL
+
+CLIB649.MtL <- Normalized.Data %>% select(PG.ProteinGroups, `[45] Ryan_CLIB649 MtL_1_50ng_5-2-2025_Slot1-33_19521.d.PG.Quantity`,
+                                          `[46] Ryan_CLIB649 MtL_2_50ng_5-2-2025_Slot1-34_19522.d.PG.Quantity`,
+                                          `[47] Ryan_CLIB649 MtL_3_50ng_5-2-2025_Slot1-35_19523.d.PG.Quantity`,
+                                          `[48] Ryan_CLIB649 MtL_4_50ng_5-3-2025_Slot1-36_19524.d.PG.Quantity`)
+
+CLIB649.MtL <- data.frame(CLIB649.MtL)
+
+CLIB649.MtL$CLIB649.MtL.Mean <- (CLIB649.MtL$X.45..Ryan_CLIB649.MtL_1_50ng_5.2.2025_Slot1.33_19521.d.PG.Quantity +
+                                   CLIB649.MtL$X.46..Ryan_CLIB649.MtL_2_50ng_5.2.2025_Slot1.34_19522.d.PG.Quantity +
+                                   CLIB649.MtL$X.47..Ryan_CLIB649.MtL_3_50ng_5.2.2025_Slot1.35_19523.d.PG.Quantity +
+                                   CLIB649.MtL$X.48..Ryan_CLIB649.MtL_4_50ng_5.3.2025_Slot1.36_19524.d.PG.Quantity)/4
+
+CLIB649.MtL <- CLIB649.MtL %>% select(PG.ProteinGroups, CLIB649.MtL.Mean)
+
+```
+
+##Merging the tables
+
+```{r}
+##Merging the tables
+CombinedList <- list(BY4741.EV, BY4741.TtL, BY4741.MtL,
+                     CLIB549.EV, CLIB549.TtL, CLIB549.MtL,
+                     CLIB631.EV, CLIB631.TtL, CLIB631.MtL,
+                     CLIB649.EV, CLIB649.TtL, CLIB649.MtL)
+
+Combined.Table <- CombinedList %>% reduce(full_join, by = "PG.ProteinGroups")
+
+```
+
+##Calculating the overall mean and standard deviation
+
+```{r}
+
+Combined.Table$Overall.Mean <- (Combined.Table$BY4741.EV.Mean + Combined.Table$BY4741.TtL.Mean + Combined.Table$BY4741.MtL.Mean +
+                                  Combined.Table$CLIB549.EV.Mean + Combined.Table$CLIB549.TtL.Mean + Combined.Table$CLIB549.MtL.Mean +
+                                  Combined.Table$CLIB631.EV.Mean + Combined.Table$CLIB631.TtL.Mean + Combined.Table$CLIB631.MtL.Mean +
+                                  Combined.Table$CLIB649.EV.Mean + Combined.Table$CLIB649.TtL.Mean + Combined.Table$CLIB649.MtL.Mean)/12
+
+Combined.Table$Std.Dev <- apply(Combined.Table[2:13], 1, sd, na.rm =TRUE)
+
+```
+
+##Calculating the overal Z-Score
+
+```{r}
+##Calculate Z-scores
+
+Combined.Table$BY4741.EV.ZScore <- (Combined.Table$BY4741.EV.Mean - Combined.Table$Overall.Mean)/Combined.Table$Std.Dev
+Combined.Table$BY4741.TtL.ZScore <- (Combined.Table$BY4741.TtL.Mean - Combined.Table$Overall.Mean)/Combined.Table$Std.Dev
+Combined.Table$BY4741.MtL.ZScore <- (Combined.Table$BY4741.MtL.Mean - Combined.Table$Overall.Mean)/Combined.Table$Std.Dev
+
+Combined.Table$CLIB549.EV.ZScore <- (Combined.Table$CLIB549.EV.Mean - Combined.Table$Overall.Mean)/Combined.Table$Std.Dev
+Combined.Table$CLIB549.TtL.ZScore <- (Combined.Table$CLIB549.TtL.Mean - Combined.Table$Overall.Mean)/Combined.Table$Std.Dev
+Combined.Table$CLIB549.MtL.ZScore <- (Combined.Table$CLIB549.MtL.Mean - Combined.Table$Overall.Mean)/Combined.Table$Std.Dev
+
+Combined.Table$CLIB631.EV.ZScore <- (Combined.Table$CLIB631.EV.Mean - Combined.Table$Overall.Mean)/Combined.Table$Std.Dev
+Combined.Table$CLIB631.TtL.ZScore <- (Combined.Table$CLIB631.TtL.Mean - Combined.Table$Overall.Mean)/Combined.Table$Std.Dev
+Combined.Table$CLIB631.MtL.ZScore <- (Combined.Table$CLIB631.MtL.Mean - Combined.Table$Overall.Mean)/Combined.Table$Std.Dev
+
+Combined.Table$CLIB649.EV.ZScore <- (Combined.Table$CLIB649.EV.Mean - Combined.Table$Overall.Mean)/Combined.Table$Std.Dev
+Combined.Table$CLIB649.TtL.ZScore <- (Combined.Table$CLIB649.TtL.Mean - Combined.Table$Overall.Mean)/Combined.Table$Std.Dev
+Combined.Table$CLIB649.MtL.ZScore <- (Combined.Table$CLIB649.MtL.Mean - Combined.Table$Overall.Mean)/Combined.Table$Std.Dev
+
+##Saving the Z-score table
+
+write_xlsx(Combined.Table, "D:/Sahil Data/Collaboration/Ryan - Collaboration/November 5th 2025 Onwards/549 Heat Map/549_ZScores.xlsx")
+
+```
+
+##Generating the heat map table
+
+```{r}
+##Generating the heatmap table
+
+Combined.Table <- Combined.Table %>% select(PG.ProteinGroups, BY4741.EV.ZScore, BY4741.TtL.ZScore, BY4741.MtL.ZScore,
+                                            CLIB549.EV.ZScore, CLIB549.TtL.ZScore, CLIB549.MtL.ZScore,
+                                            CLIB631.EV.ZScore, CLIB631.TtL.ZScore, CLIB631.MtL.ZScore,
+                                            CLIB649.EV.ZScore, CLIB649.TtL.ZScore, CLIB649.MtL.ZScore)
+
+##Looking at minimum and maximum values to set the scale for the heat map
+Combined.Table.Min <- min(Combined.Table[2:13])
+Combined.Table.Max <- max(Combined.Table[2:13])
+
+```
+
+##Generating the heat map and breaking up the rows into separate clusters
+
+```{r}
+
+##Making the heatmap
+
+Combined.Table <- Combined.Table %>% remove_rownames %>% column_to_rownames(var="PG.ProteinGroups")
+
+heatmap_color_pallate <- colorRampPalette(c('blue2','blue1','white','red1','red2','red3','red4'))(400)
+breaks <- seq(-2, 3, length.out = 345)
+heatmap <- pheatmap(Combined.Table, color = heatmap_color_pallate, fontsize = 7.5,breaks = breaks,clustering_distance_rows = "manhattan",
+                    cluster_cols = FALSE,
+                    clustering_method = "ward.D",
+                    border_color = NA,
+                    cutree_rows = 3)
+
+##Making the clustering of the rows distinguishable
+
+Clusters <- cutree(heatmap$tree_row, 3)
+Annot <- data.frame(Clusters)
+rownames(Annot) <- rownames(Combined.Table)
+
+heatmap <- pheatmap(Combined.Table, color = heatmap_color_pallate, fontsize = 7.5,breaks = breaks,clustering_distance_rows = "manhattan",
+                    cluster_cols = FALSE,
+                    clustering_method = "ward.D",
+                    border_color = NA,
+                    cutree_rows = 3,
+                    annotation_row = Annot)
+
+##Adding cluster annotations to each gene; The data frame is then saved as an excel file
+
+Annot.For.Excel <- rownames_to_column(Annot, "Proteins")
+
+write_xlsx(Annot.For.Excel, "D:/Sahil Data/Collaboration/Ryan - Collaboration/November 5th 2025 Onwards/549 Heat Map/549_clusters.xlsx")
+
+```
+

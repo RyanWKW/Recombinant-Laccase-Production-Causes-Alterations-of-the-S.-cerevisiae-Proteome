@@ -1,0 +1,185 @@
+---
+title: "BY4741 Time Course Heat Map - Figure 2B"
+author: "Sahil Chandhok"
+date: "2025-07-11"
+output: html_document
+---
+
+##Load in packages and set seed
+
+```{r}
+
+library(dplyr)
+library(tidyverse)
+library(readxl)
+library(readr)
+library(pheatmap)
+library(writexl)
+library(tibble)
+set.seed(20250707)
+
+```
+
+##Loading in the data
+
+```{r}
+##TTL and EV shared hits
+
+Day2.Day1.Increased <- read_xlsx("D:/Sahil Data/Collaboration/Ryan - Collaboration/Day 2 vs 1 Increased Abundance_Shared_and_Unique_proteins.xlsx")
+Day2.Day1.Increased <- Day2.Day1.Increased %>% select(shared)
+colnames(Day2.Day1.Increased) <- "PG.ProteinGroups"
+
+Day3.Day1.Increased <- read_xlsx("D:/Sahil Data/Collaboration/Ryan - Collaboration/Day 3 vs 1 Increased Abundance_Shared_and_Unique_proteins.xlsx")
+Day3.Day1.Increased <- Day3.Day1.Increased %>% select(shared)
+colnames(Day3.Day1.Increased) <- "PG.ProteinGroups"
+
+Day4.Day1.Increased <- read_xlsx("D:/Sahil Data/Collaboration/Ryan - Collaboration/Day 4 vs 1 Increased Abundance_Shared_and_Unique_proteins.xlsx")
+Day4.Day1.Increased <- Day4.Day1.Increased %>% select(shared)
+colnames(Day4.Day1.Increased) <- "PG.ProteinGroups"
+
+Day2.Day1.Decreased <- read_xlsx("D:/Sahil Data/Collaboration/Ryan - Collaboration/Day 2 vs 1 Decreased Abundance_Shared_and_Unique_proteins.xlsx")
+Day2.Day1.Decreased <- Day2.Day1.Decreased %>% select(shared)
+colnames(Day2.Day1.Decreased) <- "PG.ProteinGroups"
+
+Day3.Day1.Decreased <- read_xlsx("D:/Sahil Data/Collaboration/Ryan - Collaboration/Day 3 vs 1 Decreased Abundance_Shared_and_Unique_proteins.xlsx")
+Day3.Day1.Decreased <- Day3.Day1.Decreased %>% select(shared)
+colnames(Day3.Day1.Decreased) <- "PG.ProteinGroups"
+
+Day4.Day1.Decreased <- read_xlsx("D:/Sahil Data/Collaboration/Ryan - Collaboration/Day 4 vs 1 Decreased Abundance_Shared_and_Unique_proteins.xlsx")
+Day4.Day1.Decreased <- Day4.Day1.Decreased %>% select(shared)
+colnames(Day4.Day1.Decreased) <- "PG.ProteinGroups"
+
+##EV unique hits
+
+Day2.Day1.Increased.EV <- read_xlsx("D:/Sahil Data/Collaboration/Ryan - Collaboration/Day 2 vs 1 Increased Abundance_Shared_and_Unique_proteins.xlsx")
+Day2.Day1.Increased.EV <- Day2.Day1.Increased.EV %>% select(EV)
+colnames(Day2.Day1.Increased.EV) <- "PG.ProteinGroups"
+
+Day3.Day1.Increased.EV <- read_xlsx("D:/Sahil Data/Collaboration/Ryan - Collaboration/Day 3 vs 1 Increased Abundance_Shared_and_Unique_proteins.xlsx")
+Day3.Day1.Increased.EV <- Day3.Day1.Increased.EV %>% select(EV)
+colnames(Day3.Day1.Increased.EV) <- "PG.ProteinGroups"
+
+Day4.Day1.Increased.EV <- read_xlsx("D:/Sahil Data/Collaboration/Ryan - Collaboration/Day 4 vs 1 Increased Abundance_Shared_and_Unique_proteins.xlsx")
+Day4.Day1.Increased.EV <- Day4.Day1.Increased.EV %>% select(EV)
+colnames(Day4.Day1.Increased.EV) <- "PG.ProteinGroups"
+
+Day2.Day1.Decreased.EV <- read_xlsx("D:/Sahil Data/Collaboration/Ryan - Collaboration/Day 2 vs 1 Decreased Abundance_Shared_and_Unique_proteins.xlsx")
+Day2.Day1.Decreased.EV <- Day2.Day1.Decreased.EV %>% select(EV)
+colnames(Day2.Day1.Decreased.EV) <- "PG.ProteinGroups"
+
+Day3.Day1.Decreased.EV <- read_xlsx("D:/Sahil Data/Collaboration/Ryan - Collaboration/Day 3 vs 1 Decreased Abundance_Shared_and_Unique_proteins.xlsx")
+Day3.Day1.Decreased.EV <- Day3.Day1.Decreased.EV %>% select(EV)
+colnames(Day3.Day1.Decreased.EV) <- "PG.ProteinGroups"
+
+Day4.Day1.Decreased.EV <- read_xlsx("D:/Sahil Data/Collaboration/Ryan - Collaboration/Day 4 vs 1 Decreased Abundance_Shared_and_Unique_proteins.xlsx")
+Day4.Day1.Decreased.EV <- Day4.Day1.Decreased.EV %>% select(EV)
+colnames(Day4.Day1.Decreased.EV) <- "PG.ProteinGroups"
+
+##TTL unique hits
+
+Day2.Day1.Increased.TtL <- read_xlsx("D:/Sahil Data/Collaboration/Ryan - Collaboration/Day 2 vs 1 Increased Abundance_Shared_and_Unique_proteins.xlsx")
+Day2.Day1.Increased.TtL <- Day2.Day1.Increased.TtL %>% select(TtL)
+colnames(Day2.Day1.Increased.TtL) <- "PG.ProteinGroups"
+
+Day3.Day1.Increased.TtL <- read_xlsx("D:/Sahil Data/Collaboration/Ryan - Collaboration/Day 3 vs 1 Increased Abundance_Shared_and_Unique_proteins.xlsx")
+Day3.Day1.Increased.TtL <- Day3.Day1.Increased.TtL %>% select(TtL)
+colnames(Day3.Day1.Increased.TtL) <- "PG.ProteinGroups"
+
+Day4.Day1.Increased.TtL <- read_xlsx("D:/Sahil Data/Collaboration/Ryan - Collaboration/Day 4 vs 1 Increased Abundance_Shared_and_Unique_proteins.xlsx")
+Day4.Day1.Increased.TtL <- Day4.Day1.Increased.TtL %>% select(TtL)
+colnames(Day4.Day1.Increased.TtL) <- "PG.ProteinGroups"
+
+Day2.Day1.Decreased.TtL <- read_xlsx("D:/Sahil Data/Collaboration/Ryan - Collaboration/Day 2 vs 1 Decreased Abundance_Shared_and_Unique_proteins.xlsx")
+Day2.Day1.Decreased.TtL <- Day2.Day1.Decreased.TtL %>% select(TtL)
+colnames(Day2.Day1.Decreased.TtL) <- "PG.ProteinGroups"
+
+Day3.Day1.Decreased.TtL <- read_xlsx("D:/Sahil Data/Collaboration/Ryan - Collaboration/Day 3 vs 1 Decreased Abundance_Shared_and_Unique_proteins.xlsx")
+Day3.Day1.Decreased.TtL <- Day3.Day1.Decreased.TtL %>% select(TtL)
+colnames(Day3.Day1.Decreased.TtL) <- "PG.ProteinGroups"
+
+Day4.Day1.Decreased.TtL <- read_xlsx("D:/Sahil Data/Collaboration/Ryan - Collaboration/Day 4 vs 1 Decreased Abundance_Shared_and_Unique_proteins.xlsx")
+Day4.Day1.Decreased.TtL <- Day4.Day1.Decreased.TtL %>% select(TtL)
+colnames(Day4.Day1.Decreased.TtL) <- "PG.ProteinGroups"
+
+```
+
+##Merging all the data into a single data frame
+
+```{r}
+Merged.Table <- rbind(Day2.Day1.Increased, Day3.Day1.Increased, Day4.Day1.Increased,
+                      Day2.Day1.Decreased, Day3.Day1.Decreased, Day4.Day1.Decreased,
+                      Day2.Day1.Increased.EV, Day3.Day1.Increased.EV, Day4.Day1.Increased.EV,
+                      Day2.Day1.Decreased.EV, Day3.Day1.Decreased.EV, Day4.Day1.Decreased.EV,
+                      Day2.Day1.Increased.TtL, Day3.Day1.Increased.TtL, Day4.Day1.Increased.TtL,
+                      Day2.Day1.Decreased.TtL, Day3.Day1.Decreased.TtL, Day4.Day1.Decreased.TtL)
+
+Merged.Table <- Merged.Table %>% distinct(.keep_all = TRUE)
+
+colnames(Merged.Table) <- "PG.ProteinGroups"
+
+```
+
+##Adding in gene names from another data frame
+
+```{r}
+PG.Matrix <- read.csv("D:/Sahil Data/Collaboration/Ryan - Collaboration/PG.Matrix.Normalized.csv")
+PG.Matrix <- PG.Matrix %>% select(PG.Genes, PG.ProteinGroups)
+Merged.Table <- left_join(Merged.Table, PG.Matrix, by = 'PG.ProteinGroups')
+Merged.Table <- Merged.Table[complete.cases(Merged.Table), ]
+
+```
+
+##Loading in fold change data frame generated with LIMMA
+
+```{r}
+FC.Table <- read_xlsx("D:/Sahil Data/Collaboration/Ryan - Collaboration/July 3rd LIMMA/July3rd.LIMMA.FC.Table.xlsx")
+
+FC.Table <- left_join(Merged.Table, FC.Table, by = 'PG.ProteinGroups')
+
+FC.Table <- FC.Table %>% select(-PG.ProteinGroups)
+
+##Checking what the minimum and maximum fold changes are to set the scale of the heat map
+
+FC.Min <- min(FC.Table[,2:7])
+FC.Max <- max(FC.Table[,2:7])
+
+```
+
+##Generating the heat map and breaking up the rows into separate clusters
+
+```{r}
+##Generating the heat map
+
+FC.Table <- FC.Table %>% remove_rownames %>% column_to_rownames(var="PG.Genes")
+
+heatmap_color_pallate <- colorRampPalette(c('blue3','blue','white', 'red', 'red3','red4'))(400)
+breaks <- seq(-4.5, 6.5, length.out = 392)
+heatmap <- pheatmap(FC.Table, color = heatmap_color_pallate, fontsize = 7.5,breaks = breaks,clustering_distance_rows = "manhattan",
+         cluster_cols = FALSE,
+         clustering_method = "ward.D",
+         border_color = NA,
+         cutree_rows = 10)
+
+heatmap
+
+##Making the clustering of the rows distinguishable
+
+Clusters <- cutree(heatmap$tree_row, 10)
+Annot <- data.frame(Clusters)
+rownames(Annot) <- rownames(FC.Table)
+
+heatmap <- pheatmap(FC.Table, color = heatmap_color_pallate, fontsize = 7.5,breaks = breaks,clustering_distance_rows = "manhattan",
+                    cluster_cols = FALSE,
+                    clustering_method = "ward.D",
+                    border_color = NA,
+                    cutree_rows = 10,
+                    annotation_row = Annot)
+heatmap
+
+##Adding cluster annotations to each gene; The data frame is then saved as an excel file
+
+Annot.For.Excel <- rownames_to_column(Annot, "Genes")
+
+write_xlsx(Annot.For.Excel, "D:/Sahil Data/Collaboration/Ryan - Collaboration/July 3rd LIMMA/July 11th 2025 - Clustering.xlsx")
+
+```
